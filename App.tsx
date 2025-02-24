@@ -1,4 +1,5 @@
 import React from 'react';
+import axios from 'axios';
 import { Camera, useCameraPermissions,CameraView} from 'expo-camera';
 import { useState, useEffect } from 'react';
 import { StyleSheet, Text,View,Button,Alert} from 'react-native';
@@ -23,19 +24,42 @@ export default function App() {
     })()
   },[])
 
+  
   const handleBarCodeScanned = ({ type, data }: Prop) => {
-      setScanned(true);
-      Alert.alert(
-        `Código ${type} Scaneado`, 
-        `Dados: ${data}`,      
-        [
-          {
-            text: 'OK',      
-            onPress: () => setScanned(false),  
-          }
-        ],
-        { cancelable: false } 
-      );
+    setScanned(true);
+
+    // Enviar os dados para o servidor
+    axios.post('http://10.0.0.149:4000/api/qr-codes', { data })
+      .then(response => {
+        Alert.alert(
+          `Código ${type} escaneado`,
+          `Dados: ${data} armazenados com sucesso!`,
+          [
+            {
+              text: 'OK',
+              onPress: () => setScanned(false),
+            },
+          ],
+          { cancelable: false }
+        );
+      })
+      .catch((error: any) => {
+        Alert.alert(
+          'Erro',
+          'Não foi possível armazenar os dados no banco de dados. Tente novamente.',
+          [{ text: 'OK', onPress: () => setScanned(false) }],
+          { cancelable: false }
+        );
+        console.error('Erro ao salvar no banco de dados:', error);
+        if (error.response) {
+          console.error('Resposta do servidor:', error.response);
+        } else if (error.request) {
+          console.error('Erro na requisição:', error.request);
+        } else {
+          console.error('Erro desconhecido:', error.message);
+        }
+      });
+      
   };
 
   
