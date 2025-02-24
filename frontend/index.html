@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leitor QR Code</title>
+</head>
+<body>
+    <h1>Armazenar QR Codes</h1>
+    <form id="form">
+        <input type="file" id="codigo" accept="image/*" capture="environment" required />
+        <button type="submit">Salvar</button>
+    </form>
+    <h3>Códigos Armazenados:</h3>
+    <ul id="lista-codigos"></ul>
+
+    <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const form = document.getElementById("form");
+            const inputCodigo = document.getElementById("codigo");
+            const listaCodigos = document.getElementById("lista-codigos");
+
+            // Buscar códigos salvos
+            fetch("http://localhost:4000/codigos")
+                .then((res) => res.json())
+                .then((data) => {
+                    data.forEach((item) => {
+                        const li = document.createElement("li");
+                        li.textContent = item.valor;
+                        listaCodigos.appendChild(li);
+                    });
+                })
+                .catch((err) => console.error("Erro ao buscar códigos:", err));
+
+            // Enviar novo código
+            form.addEventListener("submit", async (e) => {
+                e.preventDefault();
+                const codigoFile = inputCodigo.files[0];
+                if (!codigoFile) return;
+
+                const reader = new FileReader();
+                reader.onload = async function () {
+                    const img = new Image();
+                    img.onload = async function () {
+                        const canvas = document.createElement("canvas");
+                        const ctx = canvas.getContext("2d");
+                        ctx.drawImage(img, 0, 0, img.width, img.height);
+                        const imageData = ctx.getImageData(0, 0, img.width, img.height);
+                        const code = jsQR(imageData.data, img.width, img.height);
+
+                        if (code) {
+                            const response = await fetch("http://localhost:4000/salvar", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ valor: code.data })
+                            });
+
+                            if (response.ok) {
+                                const novoCodigo = await response.json();
+                                const li = document.createElement("li");
+                                li.textContent = novoCodigo.valor;
+                                listaCodigos.appendChild(li);
+                            }
+                        }
+                    };
+                    img.src = reader.result;
+                };
+                reader.readAsDataURL(codigoFile);
+            });
+        });
+    </script>
+</body>
+</html>
