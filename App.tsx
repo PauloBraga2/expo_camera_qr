@@ -1,3 +1,4 @@
+import  React from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import { useState } from 'react';
